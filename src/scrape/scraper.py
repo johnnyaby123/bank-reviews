@@ -1,7 +1,7 @@
 """
 Google Play Store Review Scraper
 Task 1: Data Collection for Ethiopian banks
-Folder: C:\Users\HP\OneDrive\Documents\bank-reviews\src\scrape
+Folder: C:/Users/HP/OneDrive/Documents/bank-reviews/src/scrape
 """
 
 import sys
