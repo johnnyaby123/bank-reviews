@@ -30,5 +30,6 @@ SCRAPING_CONFIG = {
 # Paths to store raw and processed data
 DATA_PATHS = {
     "raw": "data/raw",                     # folder for raw CSVs
-    "raw_reviews": "data/raw/play_reviews_raw.csv"  # CSV file for all scraped reviews
+    "raw_reviews": "data/raw/play_reviews_raw.csv",  # CSV file for all scraped reviews
+    "processed_reviews": "data/processed/play_reviews_processed.csv"
 }
