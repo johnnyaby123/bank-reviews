@@ -91,4 +91,4 @@ The goal of Task 1 is to collect and preprocess user reviews from the Google Pla
 
 ---
 
-> ✅ Task 1 Complete: Minimum essentials achieved.
+> ✅ Task 1 Complete
