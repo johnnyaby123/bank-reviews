@@ -1,6 +1,9 @@
 """
-Sentiment & Thematic Analysis
-Task 2: Analyze bank reviews for sentiment and themes
+Sentiment and Thematic Analysis Script
+Task 2: Sentiment and Thematic Analysis
+
+This script performs sentiment analysis and thematic keyword extraction
+on processed Google Play Store reviews.
 """
 
 import sys
@@ -10,79 +13,131 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pandas as pd
 from textblob import TextBlob
 from sklearn.feature_extraction.text import TfidfVectorizer
-from collections import defaultdict
 from config import DATA_PATHS
 
-class SentimentThematicAnalyzer:
-    """Class to perform sentiment and thematic analysis on bank reviews"""
+# --- Sentiment Analysis ---
+def compute_sentiment(text):
+    """
+    Compute sentiment label and polarity score using TextBlob
+    Returns: (label, polarity)
+    """
+    if not text or pd.isna(text):
+        return "neutral", 0.0
+    blob = TextBlob(text)
+    polarity = blob.sentiment.polarity
+    if polarity > 0.1:
+        label = "positive"
+    elif polarity < -0.1:
+        label = "negative"
+    else:
+        label = "neutral"
+    return label, polarity
 
-    def __init__(self, input_path=None, output_path=None):
-        self.input_path = input_path or DATA_PATHS['processed_reviews']
-        self.output_path = output_path or DATA_PATHS['sentiment_analysis']
-        self.df = None
-        self.themes_keywords = {
-            "Account & Login Issues": ["login", "password", "account", "otp", "verification"],
-            "Transaction & Performance": ["transfer", "payment", "slow", "failed", "transaction"],
-            "UI/UX & Experience": ["ui", "interface", "experience", "navigation", "easy", "design"],
-            "Customer Support": ["support", "customer service", "help", "response", "call"],
-            "Feature Requests": ["feature", "option", "add", "request", "improve"]
-        }
+# --- Keyword Extraction ---
+def extract_keywords_per_bank(df, top_n=5):
+    """
+    Extract top keywords per bank using TF-IDF.
+    Adds a 'keywords' column with top keywords per bank.
+    """
+    df['keywords'] = None
+    vectorizer = TfidfVectorizer(stop_words='english', max_features=50, ngram_range=(1,2))
 
-    def load_data(self):
-        """Load processed reviews"""
-        print("Loading processed reviews...")
-        self.df = pd.read_csv(self.input_path)
-        print(f"Loaded {len(self.df)} reviews.")
+    for bank in df['bank_name'].unique():
+        bank_df = df[df['bank_name'] == bank]
+        tfidf_matrix = vectorizer.fit_transform(bank_df['review_text'])
+        feature_names = vectorizer.get_feature_names_out()
+        
+        # Top N keywords across all reviews for this bank
+        sums = tfidf_matrix.sum(axis=0)
+        keywords_scores = [(word, sums[0, idx]) for idx, word in enumerate(feature_names)]
+        keywords_scores = sorted(keywords_scores, key=lambda x: x[1], reverse=True)
+        top_keywords = [kw for kw, score in keywords_scores[:top_n]]
+        
+        df.loc[df['bank_name'] == bank, 'keywords'] = ', '.join(top_keywords)
 
-    def analyze_sentiment(self):
-        """Compute sentiment using TextBlob"""
-        print("\nPerforming sentiment analysis...")
-        def get_sentiment(text):
-            polarity = TextBlob(str(text)).sentiment.polarity
-            if polarity > 0.1:
-                return "Positive", polarity
-            elif polarity < -0.1:
-                return "Negative", polarity
-            else:
-                return "Neutral", polarity
+    return df
 
-        self.df[['sentiment_label', 'sentiment_score']] = self.df['review_text'].apply(lambda x: pd.Series(get_sentiment(x)))
-        print("Sentiment analysis complete.")
+# --- Theme Assignment ---
+def assign_themes(df):
+    """
+    Assign themes based on keywords and simple rules.
+    Themes per bank:
+    - 'Account Access Issues'
+    - 'Transaction Performance'
+    - 'User Interface & Experience'
+    - 'Customer Support'
+    - 'Feature Requests'
+    """
+    theme_map = {
+        'account': 'Account Access Issues',
+        'login': 'Account Access Issues',
+        'password': 'Account Access Issues',
+        'transfer': 'Transaction Performance',
+        'payment': 'Transaction Performance',
+        'slow': 'Transaction Performance',
+        'crash': 'User Interface & Experience',
+        'ui': 'User Interface & Experience',
+        'interface': 'User Interface & Experience',
+        'support': 'Customer Support',
+        'help': 'Customer Support',
+        'feature': 'Feature Requests',
+        'request': 'Feature Requests'
+    }
 
-    def assign_themes(self):
-        """Assign themes based on keywords"""
-        print("\nAssigning themes...")
-        def find_theme(text):
-            text_lower = str(text).lower()
-            assigned = []
-            for theme, keywords in self.themes_keywords.items():
-                if any(keyword in text_lower for keyword in keywords):
-                    assigned.append(theme)
-            if not assigned:
-                assigned.append("Other")
-            return ", ".join(assigned)
+    def map_keywords_to_themes(keywords_str):
+        if pd.isna(keywords_str) or keywords_str == '':
+            return ''
+        keywords = keywords_str.lower().split(', ')
+        themes = set()
+        for kw in keywords:
+            for k, t in theme_map.items():
+                if k in kw:
+                    themes.add(t)
+        return ', '.join(sorted(themes))
 
-        self.df['identified_theme'] = self.df['review_text'].apply(find_theme)
-        print("Themes assigned.")
+    df['identified_theme'] = df['keywords'].apply(map_keywords_to_themes)
+    return df
 
-    def save_results(self):
-        """Save final CSV"""
-        os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
-        self.df.to_csv(self.output_path, index=False)
-        print(f"\nResults saved to {self.output_path}")
-
-    def run_pipeline(self):
-        """Run the complete sentiment and thematic analysis pipeline"""
-        self.load_data()
-        self.analyze_sentiment()
-        self.assign_themes()
-        self.save_results()
-        print("\n✓ Sentiment & thematic analysis complete!")
-
+# --- Main Execution ---
 def main():
-    analyzer = SentimentThematicAnalyzer()
-    analyzer.run_pipeline()
-    return analyzer.df
+    print("="*60)
+    print("STARTING SENTIMENT AND THEMATIC ANALYSIS")
+    print("="*60)
+
+    # Load processed reviews
+    try:
+        df = pd.read_csv(DATA_PATHS['processed_reviews'])
+        print(f"Loaded {len(df)} reviews from {DATA_PATHS['processed_reviews']}")
+    except FileNotFoundError:
+        print(f"ERROR: File not found: {DATA_PATHS['processed_reviews']}")
+        return
+    except Exception as e:
+        print(f"ERROR loading CSV: {str(e)}")
+        return
+
+    # Compute sentiment
+    print("\n[1/3] Computing sentiment...")
+    sentiment_results = df['review_text'].apply(compute_sentiment)
+    df['sentiment_label'] = sentiment_results.apply(lambda x: x[0])
+    df['sentiment_score'] = sentiment_results.apply(lambda x: x[1])
+    print("Sentiment analysis completed.")
+
+    # Extract keywords
+    print("\n[2/3] Extracting keywords per bank...")
+    df = extract_keywords_per_bank(df, top_n=5)
+    print("Keyword extraction completed.")
+
+    # Assign themes
+    print("\n[3/3] Assigning identified themes...")
+    df = assign_themes(df)
+    print("Thematic assignment completed.")
+
+    # Save results
+    os.makedirs(os.path.dirname(DATA_PATHS['sentiment_analysis']), exist_ok=True)
+    df.to_csv(DATA_PATHS['sentiment_analysis'], index=False)
+    print(f"\nFinal CSV saved: {DATA_PATHS['sentiment_analysis']}")
+    print(f"Total reviews analyzed: {len(df)}")
+    print("="*60)
 
 if __name__ == "__main__":
-    df_result = main()
+    main()
