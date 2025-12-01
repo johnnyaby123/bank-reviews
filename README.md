@@ -1,256 +1,155 @@
-# 📊 Bank Reviews Analysis Project
+# 🏦 Bank Reviews Analysis
 
-This project scrapes, preprocesses, analyzes, and categorizes user reviews from Google Play Store for selected Ethiopian bank mobile apps.
+## Task 1: Data Collection & Preprocessing
 
----
-
-# 🚀 Task 1: Data Collection & Preprocessing
-
-## Overview
-Task 1 focuses on collecting at least 400 reviews per bank (minimum 1200 reviews total) and creating a clean processed dataset for analysis.
+### Overview
+The goal of Task 1 is to collect and preprocess user reviews from the Google Play Store for three Ethiopian banks. The target was to scrape **at least 400 reviews per bank** (minimum 1200 reviews total) and prepare clean data for further analysis.
 
 ---
 
-## 1. Environment Setup
+### Step-by-Step Methodology
 
-Create a virtual environment:
-```bash
-python -m venv venv
-Activate the environment:
+#### 1. Setup & Environment
+1. Created a virtual environment to isolate dependencies:
+    ```bash
+    python -m venv venv
+    ```
+2. Activated the environment:
+    ```bash
+    # Windows
+    venv\Scripts\activate
 
-bash
-Copy code
-# Windows
-venv\Scripts\activate
+    # Linux/Mac
+    source venv/bin/activate
+    ```
+3. Installed required packages:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-# Linux / Mac
-source venv/bin/activate
-Install project requirements:
+#### 2. Scraper Implementation
+1. Created `scraper.py` under `src/scrape/`.
+2. Configured app IDs, bank names, and scraping parameters in `config.py`.
+3. Scraper used `google_play_scraper` library to:
+    - Fetch reviews, ratings, thumbs up, and review dates.
+    - Handle retries for network/API failures.
+    - Collect reviews **sorted by newest first**.
+4. Saved raw scraped data to:
+    ```
+    data/raw/app_info.csv
+    data/raw/raw_reviews.csv
+    ```
+5. Sample of command to run scraper:
+    ```bash
+    python src/scrape/scraper.py
+    ```
 
-bash
-Copy code
-pip install -r requirements.txt
-2. Scraper Development
-Scraper files:
+#### 3. Preprocessing
+1. Created `preprocessing.py` under `src/scrape/`.
+2. Preprocessing pipeline included:
+    - Handling missing values in critical fields (`review_text`, `rating`, `bank_name`).
+    - Filling missing optional fields (`user_name` → "Anonymous", `thumbs_up` → 0, `reply_content` → empty string).
+    - Normalizing dates to `YYYY-MM-DD`.
+    - Cleaning review text (removing extra whitespace, dropping empty reviews).
+    - Validating ratings to ensure all are 1–5.
+    - Adding new features:
+        - `review_year` and `review_month` extracted from `review_date`.
+        - `text_length` representing the number of characters in the review text.
+3. Final processed data saved to:
+    ```
+    data/processed/PlayReviewsProcessed.csv
+    ```
+4. Sample command to run preprocessing:
+    ```bash
+    python src/scrape/preprocessing.py
+    ```
 
-bash
-Copy code
-src/scrape/scraper.py
-src/scrape/config.py
-What the scraper does:
-Uses google_play_scraper to collect:
+#### 4. GitHub & Version Control (Task 1)
+1. Created `task-1` branch for all Task 1 work:
+    ```bash
+    git checkout -b task-1
+    ```
+2. Staged and committed essential files:
+    ```bash
+    git add src/scrape/scraper.py
+    git add src/scrape/preprocessing.py
+    git add src/scrape/config.py
+    git commit -m "Task 1: Add scraper, preprocessing, and config files"
+    ```
+3. Pushed Task 1 branch to GitHub:
+    ```bash
+    git push -u origin task-1
+    ```
+4. Updated README with methodology (this file).
 
-Review text
+---
 
-Rating
+> ✅ Task 1 Complete
 
-User name
+---
 
-Thumbs up count
+## 🔍 Task 2: Sentiment and Thematic Analysis
 
-Review date
+### Overview
+Task 2 focuses on adding **sentiment scoring, keyword extraction, and thematic categorization** to transform the clean data into actionable insights regarding customer satisfaction and common pain points.
 
-Handles retries
+---
 
-Scrapes 3 different banks
+### Step-by-Step Methodology
 
-Saves raw outputs to:
+#### 1. Sentiment Analysis
+1. Created `sentiment_analysis.py` under `src/scrape/`.
+2. The script loads the processed data:
+    ```
+    data/processed/PlayReviewsProcessed.csv
+    ```
+3. Sentiment polarity was computed using the **TextBlob** library.
+4. Generated sentiment labels based on polarity scores:
+    * **Positive**
+    * **Neutral**
+    * **Negative**
 
-bash
-Copy code
-data/raw/app_info.csv
-data/raw/play_reviews_raw.csv
-Run scraper:
-bash
-Copy code
-python src/scrape/scraper.py
-3. Preprocessing Pipeline
-Preprocessing script:
+#### 2. Keyword Extraction
+1. Applied **TF-IDF Vectorization** on the review text, grouped by bank, to identify the most significant keywords.
+2. Extracted the **Top N** keywords for each bank and added them to a new column: `keywords`.
 
-bash
-Copy code
-src/scrape/preprocessing.py
-Preprocessing steps
-Loads:
+#### 3. Theme Assignment
+1. Used a **rule-based keyword matching** approach to assign reviews to specific themes based on the presence of predefined keywords (defined in `config.py`).
 
-bash
-Copy code
-data/raw/play_reviews_raw.csv
-Cleans and formats data:
+| Theme | Example Keywords |
+| :--- | :--- |
+| **Account Access Issues** | `login`, `password`, `otp`, `account` |
+| **Transaction Performance** | `transfer`, `fail`, `slow`, `payment` |
+| **UI/UX Experience** | `ui`, `design`, `interface` |
+| **Customer Support** | `support`, `help`, `response` |
+| **Feature Requests** | `add`, `feature`, `improve` |
 
-Removes missing/empty text
+2. The identified theme for each review was stored in the new column: `identified_theme`.
+3. Final analysis data saved to:
+    ```
+    data/analysis/PlayReviewsSentiment.csv
+    ```
+4. Sample command to run analysis:
+    ```bash
+    python src/scrape/sentiment_analysis.py
+    ```
 
-Normalizes dates to YYYY-MM-DD
+#### 4. GitHub & Version Control (Task 2)
+1. Created `task-2` branch for all Task 2 work:
+    ```bash
+    git checkout -b task-2
+    ```
+2. Staged and committed essential files:
+    ```bash
+    git add src/scrape/sentiment_analysis.py
+    git add src/scrape/config.py
+    git commit -m "Task 2: Sentiment analysis, keyword extraction, and theme assignment"
+    ```
+3. Pushed Task 2 branch to GitHub:
+    ```bash
+    git push -u origin task-2
+    ```
 
-Ensures rating is 1–5
+---
 
-Fills missing optional values
-
-Adds new engineered features:
-
-review_year
-
-review_month
-
-text_length
-
-Output file:
-bash
-Copy code
-data/processed/play_reviews_processed.csv
-Run preprocessing:
-bash
-Copy code
-python src/scrape/preprocessing.py
-4. Git Workflow for Task 1
-Create branch:
-
-bash
-Copy code
-git checkout -b task-1
-Stage required files:
-
-bash
-Copy code
-git add src/scrape/scraper.py
-git add src/scrape/preprocessing.py
-git add src/scrape/config.py
-git add data/processed/play_reviews_processed.csv
-Commit:
-
-bash
-Copy code
-git commit -m "Task 1: Add scraper, preprocessing, and config files"
-Push branch:
-
-bash
-Copy code
-git push -u origin task-1
-Create Pull Request → merge to main.
-
-🔍 Task 2: Sentiment & Thematic Analysis
-Overview
-Task 2 adds sentiment scoring, keyword extraction, and theme assignment to reveal user satisfaction drivers and pain points.
-
-1. Sentiment Analysis Script
-Script location:
-
-bash
-Copy code
-src/scrape/sentiment_analysis.py
-Config updated:
-
-arduino
-Copy code
-src/scrape/config.py
-Input file:
-bash
-Copy code
-data/processed/play_reviews_processed.csv
-Output file:
-bash
-Copy code
-data/analysis/play_reviews_sentiment.csv
-What the script does
-Computes sentiment polarity using TextBlob.
-
-Generates sentiment labels (positive / neutral / negative).
-
-Extracts TF-IDF keywords per bank.
-
-Assigns themes based on keyword rules.
-
-Saves results into final sentiment CSV.
-
-Run sentiment analysis:
-bash
-Copy code
-python src/scrape/sentiment_analysis.py
-2. Keyword Extraction
-Method:
-
-Runs TF-IDF vectorizer grouped by bank
-
-Extracts top N significant keywords
-
-Writes them to keywords column in the output CSV
-
-3. Theme Assignment
-Themes are based on keyword pattern logic:
-
-Theme	Example Keywords
-Account Access Issues	login, password, otp, account
-Transaction Performance	transfer, fail, slow, payment
-UI/UX Experience	ui, design, interface
-Customer Support	support, help, response
-Feature Requests	add, feature, improve
-
-Column added:
-
-nginx
-Copy code
-identified_theme
-4. Git Workflow for Task 2
-Create branch:
-
-bash
-Copy code
-git checkout -b task-2
-Stage Task 2 files:
-
-bash
-Copy code
-git add src/scrape/sentiment_analysis.py
-git add src/scrape/config.py
-git add data/analysis/play_reviews_sentiment.csv
-Commit:
-
-bash
-Copy code
-git commit -m "Task 2: Sentiment analysis, keyword extraction, theme assignment"
-Push:
-
-bash
-Copy code
-git push -u origin task-2
-Create Pull Request → Merge to main.
-
-📁 Final Project Structure
-arduino
-Copy code
-bank-reviews/
-├─ src/
-│  └─ scrape/
-│     ├─ scraper.py
-│     ├─ preprocessing.py
-│     ├─ sentiment_analysis.py
-│     └─ config.py
-├─ data/
-│  ├─ raw/
-│  │  ├─ app_info.csv
-│  │  └─ play_reviews_raw.csv
-│  ├─ processed/
-│  │  └─ play_reviews_processed.csv
-│  └─ analysis/
-│     └─ play_reviews_sentiment.csv
-├─ requirements.txt
-├─ venv/
-└─ README.md
-✅ Task Completion Summary
-✔ Task 1 Completed
-Scraped raw reviews
-
-Preprocessed dataset
-
-Generated clean CSV
-
-✔ Task 2 Completed
-Sentiment analysis pipeline
-
-Keyword extraction
-
-Thematic mapping
-
-Final analysis CSV created
-
-Branch pushed & ready for PR
+> ✅ Task 2 Complete
